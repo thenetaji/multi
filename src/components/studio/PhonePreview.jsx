@@ -15,10 +15,19 @@ import {
   Monitor
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { logger } from '@/utils/logger';
 
 export default function PhonePreview({ project, previewUrl }) {
   const [qrGenerated, setQrGenerated] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+  useEffect(() => {
+    // כשה-URL משתנה, נאפס את ה-QR
+    if (previewUrl) {
+      setQrGenerated(false);
+      setQrCodeUrl('');
+    }
+  }, [previewUrl]);
 
   const generateQR = async () => {
     if (!previewUrl) return;
@@ -29,10 +38,11 @@ export default function PhonePreview({ project, previewUrl }) {
         setQrCodeUrl(qrResponse.url);
         setQrGenerated(true);
       } else {
+        logger.error('Failed to generate QR code: Response not OK');
         setQrGenerated(true);
       }
     } catch (error) {
-      console.error('Failed to generate QR code:', error);
+      logger.error('Failed to generate QR code:', error);
       setQrGenerated(true);
     }
   };

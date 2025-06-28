@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import {
   Play
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { logger } from '@/utils/logger';
 
 export default function CodePanel({ code, project, previewUrl }) {
   const [copied, setCopied] = useState(false);
@@ -25,7 +25,7 @@ export default function CodePanel({ code, project, previewUrl }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   };
 

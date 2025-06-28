@@ -1,0 +1,116 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // פונקציית עזר לבדיקה אם המשתמש מאומת
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // פונקציית עזר לבדיקה אם המשתמש הוא מנהל
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // פונקציית עזר לבדיקה אם המסמך שייך למשתמש
+    function isOwner() {
+      return isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // כללים לאוסף המשתמשים
+    match /users/{userId} {
+      // כל אחד יכול לקרוא את רשימת המשתמשים
+      allow read: if true;
+      // משתמש יכול ליצור את הפרופיל שלו בהרשמה
+      allow create: if request.auth.uid == userId && 
+        request.resource.data.keys().hasAll(['email', 'role', 'token_balance']) &&
+        request.resource.data.role == 'user';
+      // משתמש יכול לעדכן את הפרופיל שלו
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // רק מנהל יכול למחוק משתמשים
+      allow delete: if isAdmin();
+    }
+
+    // כללים לאוסף הפרויקטים
+    match /projects/{projectId} {
+      allow read: if isAuthenticated() && (
+        resource.data.created_by == request.auth.email ||
+        resource.data.user_id == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        resource.data.created_by == request.auth.email ||
+        resource.data.user_id == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // כללים לאוסף ההודעות
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (isOwner() || isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (isOwner() || isAdmin());
+    }
+
+    // כללים לאוסף הקבצים
+    match /files/{fileId} {
+      allow read: if isAuthenticated() && (isOwner() || isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (isOwner() || isAdmin());
+    }
+
+    // כללים לאוסף בקשות LLM
+    match /llm_requests/{requestId} {
+      allow read: if isAuthenticated() && (isOwner() || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if false; // לא מאפשרים מחיקת בקשות
+    }
+
+    // כללים לאוסף בקשות יצירת תמונות
+    match /image_requests/{requestId} {
+      allow read: if isAuthenticated() && (isOwner() || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if false; // לא מאפשרים מחיקת בקשות
+    }
+
+    // כללים לאוסף בקשות חילוץ מידע מקבצים
+    match /file_extraction_requests/{requestId} {
+      allow read: if isAuthenticated() && (isOwner() || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if false; // לא מאפשרים מחיקת בקשות
+    }
+
+    // כללים לאוסף הודעות צ'אט
+    match /chat_messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.sender == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.sender == request.auth.uid || isAdmin());
+    }
+
+    // כללים לאוסף היסטוריית פרויקטים
+    match /project_history/{historyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // כללים לאוסף קבצי אפליקציות
+    match /app_files/{fileId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // הגנה על כל שאר האוספים
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+} 

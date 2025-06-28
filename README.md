@@ -1,8 +1,14 @@
-# Base44 App
+# Vibe Coding
 
+A powerful AI-powered app development platform that lets you create applications through natural language conversations with Claude AI.
 
-This app was created automatically by Base44.
-It's a Vite+React app that communicates with the Base44 API.
+## Features
+
+- Natural language app development with Claude AI
+- Real-time app preview
+- Modern UI components library
+- Project management system
+- Visual editing capabilities
 
 ## Running the app
 
@@ -17,4 +23,11 @@ npm run dev
 npm run build
 ```
 
-For more information and support, please contact Base44 support at app@base44.com.
+## Technology Stack
+
+- React + Vite
+- TailwindCSS
+- Radix UI Components
+- Claude AI Integration
+- React Router
+- Framer Motion

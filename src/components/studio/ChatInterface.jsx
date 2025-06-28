@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -6,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Bot, User, Code, AlertCircle, RefreshCw, Clock, Brain, Image as ImageIcon, Search, Paintbrush, GitCommit, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function ChatInterface({ message, isGenerating, onRevert }) {
-  const isUser = message.sender === "user";
-  const isSystem = message.sender === "system";
+export default function ChatInterface({ message, isGenerating, onRevert, currentUser }) {
+  const isUser = message.sender === currentUser?.uid && message.message_type === "text";
+  const isSystem = message.message_type === "system"; // Check by message_type instead of sender
+  const isAssistant = message.message_type === "assistant"; // Check for assistant messages
   const isError = message.message_type === "error";
   const hasCode = message.metadata?.code_generated;
   const hasHistory = message.metadata?.history_id;
@@ -65,7 +65,7 @@ export default function ChatInterface({ message, isGenerating, onRevert }) {
               <span className={`font-medium ${
                 isUser ? 'text-blue-300' : 'text-purple-300'
               }`}>
-                {isUser ? 'You' : 'Multi-Agent Claude'}
+                {isUser ? 'You' : isAssistant ? 'Multi-Agent Claude' : 'System'}
               </span>
               
               {isVisualEdit && (
@@ -156,7 +156,7 @@ export default function ChatInterface({ message, isGenerating, onRevert }) {
             </div>
 
             {/* Additional metadata and actions for AI responses */}
-            {!isUser && (
+            {isAssistant && (
               <div className="mt-3 pt-3 border-t border-slate-700/50 flex justify-between items-center">
                 <div className="flex items-center gap-4 text-xs text-slate-400">
                   {message.metadata?.features_added && (

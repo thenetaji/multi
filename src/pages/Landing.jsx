@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { User } from "@/api/entities";
+import LoginForm from "@/components/auth/LoginForm";
+import SignupForm from "@/components/auth/SignupForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,18 +30,20 @@ import { createPageUrl } from "@/utils";
 export default function Landing() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const user = await User.me();
         setCurrentUser(user);
-        // If user is logged in, redirect to Studio
+        // אם המשתמש מחובר, מפנה אותו לסטודיו
         if (user) {
-          window.location.href = createPageUrl("Studio");
+          window.location.href = '/app/studio';
         }
       } catch (error) {
-        // User not logged in - stay on landing page
+        // המשתמש לא מחובר - נשאר בדף הנחיתה
         setCurrentUser(null);
       }
       setIsLoading(false);
@@ -53,6 +57,14 @@ export default function Landing() {
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
       </div>
     );
+  }
+
+  if (showLogin) {
+    return <LoginForm />;
+  }
+
+  if (showSignup) {
+    return <SignupForm />;
   }
 
   const features = [
@@ -129,14 +141,17 @@ export default function Landing() {
             </div>
             
             <div className="flex items-center gap-4">
-              <Link to={createPageUrl("Pricing")}>
+              <Link to="/app/pricing">
                 <Button variant="ghost" className="text-white hover:text-purple-300">
-                  Pricing
+                  מחירים
                 </Button>
               </Link>
-              <Button onClick={() => User.login()} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+              <Button 
+                onClick={() => setShowLogin(true)} 
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
                 <LogIn className="w-4 h-4 mr-2" />
-                Sign In
+                התחברות
               </Button>
             </div>
           </div>
@@ -145,38 +160,29 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="text-center"
           >
-            <Badge className="mb-6 bg-purple-500/20 text-purple-300 border-purple-500/30 px-4 py-2 text-sm">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Powered by Claude AI
-            </Badge>
-            
-            <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
-              Build Mobile Apps
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400">
-                In Minutes, Not Months
-              </span>
+            <h1 className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-6">
+              פיתוח אפליקציות<br />עם בינה מלאכותית
             </h1>
-            
-            <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Transform your ideas into production-ready React Native apps using the world's most advanced AI. 
-              No coding experience required. No setup. No limits.
+            <p className="text-xl text-slate-300 mb-12 max-w-3xl mx-auto">
+              צור אפליקציות מובייל מדהימות בעזרת שיחה טבעית עם הבינה המלאכותית שלנו.
+              פשוט תאר מה אתה רוצה, ואנחנו ניצור את זה בשבילך.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
-                onClick={() => User.login()}
-                size="lg" 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-4 text-lg font-semibold rounded-2xl shadow-2xl hover:shadow-purple-500/25 transition-all duration-300"
+                onClick={() => setShowSignup(true)}
+                size="lg"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-4 text-lg font-semibold rounded-2xl"
               >
                 <Rocket className="w-5 h-5 mr-2" />
-                Start Building Free
-                <ArrowRight className="w-5 h-5 ml-2" />
+                התחל בחינם
               </Button>
               
               <Button 
@@ -185,29 +191,8 @@ export default function Landing() {
                 className="border-slate-600 text-slate-300 hover:bg-slate-800 px-8 py-4 text-lg rounded-2xl"
               >
                 <Play className="w-5 h-5 mr-2" />
-                Watch Demo
+                צפה בהדגמה
               </Button>
-            </div>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="grid grid-cols-3 gap-8 max-w-2xl mx-auto"
-          >
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">10,000+</div>
-              <div className="text-slate-400">Apps Created</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">2 min</div>
-              <div className="text-slate-400">Average Build Time</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">99.9%</div>
-              <div className="text-slate-400">Success Rate</div>
             </div>
           </motion.div>
         </div>
@@ -380,7 +365,7 @@ export default function Landing() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
-                onClick={() => User.login()}
+                onClick={() => setShowSignup(true)}
                 size="lg"
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-4 text-lg font-semibold rounded-2xl"
               >
@@ -388,7 +373,7 @@ export default function Landing() {
                 Start Building Free
               </Button>
               
-              <Link to={createPageUrl("Pricing")}>
+              <Link to="/app/pricing">
                 <Button 
                   variant="outline" 
                   size="lg"

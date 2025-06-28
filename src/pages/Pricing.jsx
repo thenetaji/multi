@@ -1,9 +1,12 @@
-
 import React, { useState, useEffect } from "react";
-import { User } from "@/api/entities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Link, useNavigate } from "react-router-dom";
+import { auth } from '@/config/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { logger } from '@/utils/logger';
 import {
   Check,
   Star,
@@ -20,24 +23,31 @@ import {
   Shield
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 
 export default function Pricing() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const user = await User.me();
-        setCurrentUser(user);
+        const user = auth.currentUser;
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser({ id: user.uid, ...userDoc.data() });
+          }
+        } else {
+          setCurrentUser(null);
+        }
       } catch (error) {
-        console.log("User not logged in");
+        logger.error("Error fetching user:", error);
         setCurrentUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     fetchUser();
   }, []);
@@ -52,11 +62,11 @@ export default function Pricing() {
       color: "from-blue-500 to-cyan-500",
       description: "Perfect for getting started with AI app development",
       features: [
-        "100 Monthly AI Messages",
-        "Basic App Generation",
-        "Live Preview",
+        "100 AI messages per month",
+        "Basic app creation",
+        "Live preview",
         "Export to Expo Snack",
-        "Community Support"
+        "Community support"
       ],
       limitations: [
         "Limited to simple apps",
@@ -70,16 +80,16 @@ export default function Pricing() {
       credits: 250,
       icon: <Crown className="w-8 h-8" />,
       color: "from-purple-500 to-pink-500",
-      description: "Most popular choice for serious app builders",
+      description: "Most popular choice for serious developers",
       features: [
-        "250 Monthly AI Messages",
-        "Advanced App Generation",
-        "Visual Editing with Images",
-        "Web Research Integration",
-        "Deep Thinking Mode",
-        "Priority Support",
-        "Multi-file Projects",
-        "Advanced Components"
+        "250 AI messages per month",
+        "Advanced app creation",
+        "Visual editing with images",
+        "Web research integration",
+        "Deep thinking mode",
+        "Priority support",
+        "Multi-file projects",
+        "Advanced components"
       ],
       popular: true,
       limitations: []
@@ -93,16 +103,16 @@ export default function Pricing() {
       color: "from-orange-500 to-red-500",
       description: "Maximum power for professional developers",
       features: [
-        "500 Monthly AI Messages",
-        "Enterprise App Generation",
-        "All Visual Editing Features",
-        "Advanced Web Research",
-        "Fastest Response Times",
-        "1-on-1 Support",
-        "Complex App Architecture",
-        "Custom Components",
-        "API Integration Assistance",
-        "Code Review & Optimization"
+        "500 AI messages per month",
+        "Enterprise-grade app creation",
+        "All visual editing features",
+        "Advanced web research",
+        "Fastest response times",
+        "1-on-1 personal support",
+        "Complex app architectures",
+        "Custom components",
+        "API integration assistance",
+        "Code review & optimization"
       ],
       limitations: []
     }
@@ -111,45 +121,35 @@ export default function Pricing() {
   const handlePurchase = async (plan) => {
     setSelectedPlan(plan.id);
     
-    // Here you would integrate with your payment processor
-    // For now, we'll simulate the purchase process
-    
     if (!currentUser) {
-      // Redirect to login/signup
-      alert("Please log in first to purchase a plan.");
-      await User.login();
+      navigate('/');
       return;
     }
 
-    // Simulate payment processing
     try {
-      // In a real implementation, you'd integrate with Stripe, PayPal, etc.
-      // For demo purposes, we'll directly update the user's token balance and subscription plan
-      
       const confirmation = window.confirm(
-        `Purchase ${plan.name} for $${plan.price}?\n\nThis will add ${plan.credits} tokens and set your plan to ${plan.name}.`
+        `Purchase ${plan.name} for $${plan.price}?\n\nThis will add ${plan.credits} tokens and update your plan to ${plan.name}.`
       );
       
       if (confirmation) {
         const newBalance = (currentUser.token_balance || 0) + plan.credits;
+        const userRef = doc(db, 'users', currentUser.id);
         
-        // Update both token balance and subscription plan
-        await User.updateMyUserData({ 
-            token_balance: newBalance,
-            subscription_plan: plan.id 
+        await updateDoc(userRef, { 
+          token_balance: newBalance,
+          subscription_plan: plan.id 
         });
         
-        // Update local state
         setCurrentUser(prev => ({ 
-            ...prev, 
-            token_balance: newBalance,
-            subscription_plan: plan.id
+          ...prev, 
+          token_balance: newBalance,
+          subscription_plan: plan.id
         }));
         
-        alert(`Success! ${plan.credits} tokens have been added and your plan is now ${plan.name}.`);
+        alert(`Success! ${plan.credits} tokens added and your plan updated to ${plan.name}.`);
       }
     } catch (error) {
-      console.error("Purchase failed:", error);
+      logger.error("Purchase failed:", error);
       alert("Purchase failed. Please try again.");
     } finally {
       setSelectedPlan(null);
@@ -159,7 +159,10 @@ export default function Pricing() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+          <h3 className="text-xl font-semibold text-white">Loading...</h3>
+        </div>
       </div>
     );
   }
@@ -167,10 +170,9 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-900 py-12 sm:py-16">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center"> {/* Removed mb-16 as per outline's general layout fix */}
+        <div className="text-center">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <Link to={createPageUrl("Studio")}>
+            <Link to="/app/studio">
               <Button variant="ghost" className="text-slate-400 hover:text-white">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Studio
@@ -178,17 +180,14 @@ export default function Pricing() {
             </Link>
           </div>
 
-          {/* New H2 for Pricing as per outline */}
           <h2 className="text-base font-semibold text-purple-400">Pricing</h2>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            // Removed className="mb-8" as new p tag classes handle spacing
           >
-            {/* Existing H1 changed to P and classes applied as per outline */}
             <p className="mt-2 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Choose Your{" "}
+              Choose your{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
                 AI Power
               </span>
@@ -198,12 +197,11 @@ export default function Pricing() {
             </p>
           </motion.div>
 
-          {/* Current User Info */}
           {currentUser && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-3 bg-slate-800/50 rounded-full px-6 py-3 mb-8"
+              className="inline-flex items-center gap-3 bg-slate-800/50 rounded-full px-6 py-3 mb-8 mt-6"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                 <Users className="w-4 h-4 text-white" />
@@ -234,7 +232,6 @@ export default function Pricing() {
           )}
         </div>
 
-        {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           {plans.map((plan, index) => (
             <motion.div
@@ -245,7 +242,7 @@ export default function Pricing() {
               className="relative"
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1">
                     <Star className="w-3 h-3 mr-1" />
                     Most Popular
@@ -265,11 +262,11 @@ export default function Pricing() {
                   <CardTitle className="text-2xl text-white mb-2">{plan.name}</CardTitle>
                   <div className="mb-4">
                     <span className="text-4xl font-bold text-white">${plan.price}</span>
-                    <span className="text-slate-400 ml-2">/month</span>
+                    <span className="text-slate-400 mr-2">/ month</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 mb-4">
                     <Sparkles className="w-4 h-4 text-purple-400" />
-                    <span className="text-purple-300 font-semibold">{plan.credits} Monthly Messages</span>
+                    <span className="text-purple-300 font-semibold">{plan.credits} messages per month</span>
                   </div>
                   <p className="text-slate-400 text-sm">{plan.description}</p>
                 </CardHeader>
@@ -278,7 +275,7 @@ export default function Pricing() {
                   <div>
                     <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-400" />
-                      What's Included
+                      What's included
                     </h4>
                     <ul className="space-y-2">
                       {plan.features.map((feature, i) => (
@@ -316,22 +313,22 @@ export default function Pricing() {
                   >
                     {selectedPlan === plan.id ? (
                       <>
-                        <Clock className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
+                        <Clock className="w-4 h-4 ml-2" />
+                        Loading...
                       </>
                     ) : currentUser?.subscription_plan === plan.id ? (
                       <>
-                        <Check className="w-4 h-4 mr-2" />
+                        <Check className="w-4 h-4 ml-2" />
                         Current Plan
                       </>
                     ) : currentUser?.role === 'admin' ? (
                       <>
-                        <Shield className="w-4 h-4 mr-2" />
+                        <Shield className="w-4 h-4 ml-2" />
                         Admin Account
                       </>
                     ) : (
                       <>
-                        <CreditCard className="w-4 h-4 mr-2" />
+                        <CreditCard className="w-4 h-4 ml-2" />
                         Choose {plan.name}
                       </>
                     )}
@@ -342,7 +339,6 @@ export default function Pricing() {
           ))}
         </div>
 
-        {/* FAQ Section */}
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-white mb-12">
             Frequently Asked Questions
@@ -351,20 +347,20 @@ export default function Pricing() {
           <div className="grid md:grid-cols-2 gap-8">
             {[
               {
-                question: "What happens when I run out of tokens?",
-                answer: "When your monthly tokens are depleted, you'll need to upgrade or wait for next month's reset. You can always view your usage in the dashboard."
+                question: "What happens when my tokens run out?",
+                answer: "When your monthly tokens run out, you'll need to upgrade or wait for the next month. You can always see your usage on the dashboard."
               },
               {
-                question: "Can I change plans anytime?",
+                question: "Can I change plans at any time?",
                 answer: "Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately."
               },
               {
-                question: "Do tokens roll over to next month?",
-                answer: "No, tokens reset monthly. This ensures you always get fresh capacity and our latest AI improvements."
+                question: "Do tokens carry over to the next month?",
+                answer: "No, tokens reset every month. This ensures you always get a fresh allotment and the latest improvements in our AI."
               },
               {
-                question: "What apps can I build?",
-                answer: "Any React Native app! From simple calculators to complex social apps, dating apps, games, and business tools."
+                question: "What types of apps can I build?",
+                answer: "All React Native apps! From simple calculators and apps to complex business apps, social apps, games, and tools."
               }
             ].map((faq, index) => (
               <motion.div

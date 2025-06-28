@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Project } from "@/api/entities"; // Assuming Project entity is available for update
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { logger } from '@/utils/logger';
 
 export default function ProjectHeader({ project, onToggleCode, showCode, onUpdateProject, currentUser }) { // Added currentUser prop
   const [isEditingName, setIsEditingName] = useState(false);
@@ -47,7 +47,7 @@ export default function ProjectHeader({ project, onToggleCode, showCode, onUpdat
       onUpdateProject({ ...project, name: editedName }); // Update parent state with the new name
       setIsEditingName(false);
     } catch (error) {
-      console.error("Failed to update project name:", error);
+      logger.error("Failed to update project name:", error);
       // Optionally, show an error to the user (e.g., using a toast notification)
       setEditedName(project.name); // Revert on failure
       setIsEditingName(false); // Exit editing mode
@@ -82,30 +82,24 @@ export default function ProjectHeader({ project, onToggleCode, showCode, onUpdat
   };
 
   // Utility function to copy text to clipboard
-  const copyToClipboard = (text) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text)
-        .then(() => console.log('Copied to clipboard successfully!'))
-        .catch(err => console.error('Failed to copy text: ', err));
-    } else {
-      // Fallback for browsers that do not support navigator.clipboard
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      // Make the textarea invisible and out of the viewport
-      textArea.style.position = "fixed";
-      textArea.style.left = "-9999px";
-      textArea.style.top = "-9999px";
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      logger.log('Copied to clipboard successfully!');
+    } catch (err) {
+      logger.error('Failed to copy text: ', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
       document.body.appendChild(textArea);
-      textArea.focus();
       textArea.select();
       try {
         document.execCommand('copy');
-        console.log('Copied to clipboard (fallback success)!');
+        logger.log('Copied to clipboard (fallback success)!');
       } catch (err) {
-        console.error('Failed to copy text (fallback): ', err);
-      } finally {
-        document.body.removeChild(textArea);
+        logger.error('Failed to copy text (fallback): ', err);
       }
+      document.body.removeChild(textArea);
     }
   };
 
@@ -196,7 +190,7 @@ export default function ProjectHeader({ project, onToggleCode, showCode, onUpdat
             <Button
               variant="outline"
               size="sm"
-              onClick={() => copyToClipboard(project?.code || "")}
+              onClick={copyToClipboard}
               className="bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50"
             >
               <Copy className="w-4 h-4 mr-2" />

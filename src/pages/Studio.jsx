@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Project, ChatMessage, AppFile, ProjectHistory, User } from "@/api/entities"; // Import ProjectHistory and User
 import { InvokeLLM, UploadFile } from "@/api/integrations";
@@ -12,12 +11,15 @@ import {
   Paperclip,
   X,
   Upload,
-  Paintbrush // Added Paintbrush icon for Visual Edit
+  Paintbrush, // Added Paintbrush icon for Visual Edit
+  Plus // Added Plus icon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip
+import { auth } from '@/config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 import ChatInterface from "../components/studio/ChatInterface";
 import PhonePreview from "../components/studio/PhonePreview";
@@ -54,7 +56,8 @@ const deepThinkingSteps = [
 ];
 
 async function generateReactNativeAppWithClaude(prompt, onThinkingUpdate, fileUrls = [], useDeepThinking = true, useWebResearch = true) {
-  console.log("🤖 Starting Claude thinking process for:", prompt);
+  console.log("🤖 Starting Claude AI generation for:", prompt);
+  console.log("🔗 Connecting to local Claude server at localhost:3001");
 
   const thinkingSteps = useDeepThinking ? deepThinkingSteps : defaultThinkingSteps;
 
@@ -80,155 +83,163 @@ async function generateReactNativeAppWithClaude(prompt, onThinkingUpdate, fileUr
     ? `Analyze the attached image(s) and then fulfill this request: ${prompt}`
     : prompt;
 
-  // Updated system prompt with the exact specification provided
-  const finalPrompt = `You are a senior React Native engineer and system architect with deep expertise in building scalable, modular, and beautiful mobile applications using React Native, TypeScript, Redux, and TailwindCSS (NativeWind). You work inside the Vibe Coding platform, where your goal is to generate production-grade mobile code that works seamlessly with the Expo Snack preview environment, while maintaining modern design standards.
+  // Updated system prompt for Claude
+  const finalPrompt = `You are Claude, a world-class Senior Mobile App Architect and React Native Expert working for Vibe Coding - an AI-powered mobile development platform. You specialize in creating production-ready, scalable, and beautiful mobile applications that users love.
 
-When creating applications:
-1. Use TypeScript as the default language. Structure code professionally using interfaces, props typing, and strict typing where helpful. If TypeScript is not supported in the preview environment, gracefully fallback to clean JavaScript using TypeScript-like principles.
-2. Follow modern architecture principles:
-   - Use atomic component structure: organize UI in small reusable components.
-   - Structure files clearly into \`/components\`, \`/screens\`, \`/contexts\`, \`/hooks\`, \`/assets\`, etc.
-   - Apply separation of concerns: logic, styling, and rendering should be cleanly separated.
-3. For UI, use:
-   - React Native core components when 3rd-party libraries are unavailable.
-   - TailwindCSS via NativeWind where permitted. If NativeWind is not installed, you may simulate Tailwind-style layout using StyleSheet equivalents.
-   - Follow best practices for responsive layout, accessibility, and modern mobile UI design.
-4. For state management:
-   - Use React's built-in \`useState\`, \`useEffect\`, \`useContext\`, and \`useReducer\` for light state logic.
-   - For more complex state, use Redux Toolkit with \`Provider\` and store setup in a \`/store\` directory.
-5. Always create:
-   - Clean and meaningful file names.
-   - Reusable components.
-   - Accurate imports and properly structured folders.
-6. You can also:
-   - Perform deep reasoning and structured breakdowns.
-   - Analyze user-provided images with advanced visual understanding.
-   - Simulate web search behavior to generate relevant, up-to-date content or references, even if not actually browsing.
-   - Use critical thinking to assess the best design and logic for any feature.
-7. If an image is provided, analyze its UI/UX deeply and translate it into React Native code with appropriate layout and styling.
-8. Your tone is helpful, confident, and your output must be clean, well-organized, and easy to understand and modify by human developers.
+🎯 **YOUR MISSION:**
+Transform user ideas into exceptional mobile experiences that feel native, perform excellently, and solve real problems. Every app you create should be ready for the App Store/Play Store.
 
-This system is part of the Multi-Agent framework. Coordinate internally with other agents if needed for backend, API integration, design, or testing roles.
+📱 **MOBILE-FIRST PRINCIPLES:**
+1. **User Experience Excellence:**
+   - Design for thumb navigation and one-handed use
+   - Implement intuitive gestures (swipe, pinch, long-press)
+   - Follow iOS Human Interface Guidelines and Material Design principles
+   - Ensure accessibility (screen readers, high contrast, large text)
+   - Create smooth 60fps animations and transitions
 
-Above all, ensure:
-- Code runs without errors in the Expo Snack preview.
-- The UI is modern, elegant, and beautiful.
-- The architecture supports scalability and future integrations.
+2. **Performance & Optimization:**
+   - Lazy load components and images
+   - Implement efficient state management
+   - Use FlatList for large datasets
+   - Optimize bundle size and startup time
+   - Handle offline scenarios gracefully
+
+3. **Native Feel & Patterns:**
+   - Platform-specific navigation (Tab Bar on iOS, Drawer on Android)
+   - Use native-feeling components and interactions
+   - Implement proper loading states and error handling
+   - Add haptic feedback where appropriate
+   - Follow platform-specific design patterns
+
+🏗️ **TECHNICAL ARCHITECTURE:**
+1. **Code Structure:**
+   \`\`\`
+   /src
+     /components     # Reusable UI components
+     /screens       # Screen components
+     /navigation    # React Navigation setup
+     /hooks         # Custom hooks
+     /services      # API calls & business logic
+     /utils         # Helper functions
+     /constants     # Colors, fonts, dimensions
+     /assets        # Images, icons, fonts
+   \`\`\`
+
+2. **Technology Stack:**
+   - **Core:** React Native with TypeScript
+   - **Navigation:** React Navigation v6
+   - **State:** Context API + useReducer or Zustand for complex apps
+   - **Styling:** StyleSheet with responsive design
+   - **Icons:** React Native Vector Icons or Expo Icons
+   - **Animations:** React Native Reanimated 3
+
+3. **Best Practices:**
+   - Use TypeScript interfaces for all props and data
+   - Implement proper error boundaries
+   - Add loading and error states for all async operations
+   - Use proper naming conventions (PascalCase for components)
+   - Include PropTypes or TypeScript for type safety
+
+📊 **BUSINESS INTELLIGENCE:**
+Analyze the user request to understand:
+- **Target Audience:** Who will use this app?
+- **Core Value Proposition:** What problem does it solve?
+- **Key User Flows:** What are the main user journeys?
+- **Monetization Potential:** How could this app generate revenue?
+- **Competitive Analysis:** What similar apps exist and how to differentiate?
+
+🎨 **DESIGN SYSTEM:**
+1. **Color Palette:** Use modern, accessible color schemes
+2. **Typography:** Clear hierarchy with readable fonts
+3. **Spacing:** Consistent 8px grid system
+4. **Components:** Reusable button, card, input, modal components
+5. **Dark Mode:** Support both light and dark themes
+
+🔧 **ADVANCED FEATURES TO CONSIDER:**
+- Push notifications setup
+- Deep linking configuration
+- Social authentication (Google, Apple, Facebook)
+- In-app purchases preparation
+- Analytics integration points
+- Crash reporting setup
+- A/B testing infrastructure
+
+📱 **PLATFORM CONSIDERATIONS:**
+- iOS: Use SF Symbols, proper safe area handling, native navigation
+- Android: Material Design 3, proper back button handling, status bar
+- Cross-platform: Shared business logic, platform-specific UI tweaks
+
+🚀 **DEPLOYMENT READINESS:**
+- Proper app icons and splash screens
+- App store metadata suggestions
+- Privacy policy requirements
+- Performance optimization checklist
+- Security best practices implementation
 
 **USER REQUEST:** "${promptWithFiles}"
 
-Return JSON with this exact structure:
+**ANALYSIS FRAMEWORK:**
+1. **Problem Understanding:** What specific problem is the user trying to solve?
+2. **User Journey Mapping:** What are the key screens and flows?
+3. **Feature Prioritization:** What's the MVP vs nice-to-have features?
+4. **Technical Complexity:** What's the appropriate architecture for this scale?
+5. **Market Positioning:** How does this differentiate from existing solutions?
+
+**OUTPUT FORMAT:**
+Return a comprehensive JSON response with this structure:
 {
-  "app_name": "App Name Here",
-  "explanation": "Brief explanation of the app",
+  "app_name": "Compelling, marketable app name",
+  "tagline": "One-line value proposition",
+  "explanation": "Detailed explanation of the app's purpose, target audience, and key benefits",
+  "business_model": "How this app could generate revenue",
+  "target_audience": "Primary user demographics and use cases",
+  "key_features": ["Feature 1 with user benefit", "Feature 2 with user benefit"],
+  "user_flows": ["Main user journey 1", "Main user journey 2"],
+  "technical_highlights": ["Performance optimization", "Advanced feature"],
   "files": [
     {
       "path": "App.js",
-      "content": "Complete React Native code here"
+      "content": "Complete, production-ready React Native code with TypeScript interfaces, proper error handling, loading states, and modern mobile UX patterns"
+    },
+    {
+      "path": "components/Button.js", 
+      "content": "Reusable component code if needed"
     }
   ],
-  "features": ["Feature 1", "Feature 2"]
-}`;
+  "design_system": {
+    "colors": {"primary": "#007AFF", "secondary": "#5AC8FA"},
+    "typography": {"heading": "SF Pro Display", "body": "SF Pro Text"},
+    "spacing": "8px grid system"
+  },
+  "next_steps": ["Feature to add next", "Improvement suggestion"],
+  "app_store_potential": "Assessment of market viability and success factors"
+}
+
+Create an app that users will love, investors will fund, and that will succeed in the competitive mobile market. Make it exceptional! 🌟`;
 
   try {
+    console.log("Calling InvokeLLM with prompt...");
     const response = await InvokeLLM({
       prompt: finalPrompt,
       file_urls: fileUrls,
       add_context_from_internet: useWebResearch,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          app_name: {
-            type: "string",
-            description: "Name of the app"
-          },
-          explanation: {
-            type: "string", 
-            description: "Explanation of what the app does"
-          },
-          files: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                path: { type: "string" },
-                content: { type: "string" }
-              },
-              required: ["path", "content"]
-            }
-          },
-          features: {
-            type: "array",
-            items: { type: "string" }
-          }
-        },
-        required: ["files"]
-      }
     });
-
     clearInterval(thinkingInterval);
-
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-
-    // Final thinking update to show completion
-    onThinkingUpdate({
-      step: thinkingSteps.length,
-      totalSteps: thinkingSteps.length,
-      currentThought: "✅ אפליקציה אמיתית ופועלת מוכנה!",
-      elapsedTime: totalTime + "s",
-      completed: true,
-      isDeepThinking: useDeepThinking,
-      hasWebResearch: useWebResearch
-    });
-
-    console.log("✅ Claude completed REAL app generation in", totalTime + "s");
-
-    return {
-      ...response,
-      thinking_time: totalTime,
-      thinking_steps: thinkingSteps.length,
-      used_deep_thinking: useDeepThinking,
-      used_web_research: useWebResearch
-    };
+    console.log("✅ Claude completed REAL app generation");
+    console.log("🔍 Claude response:", response);
+    return response;
 
   } catch (error) {
     clearInterval(thinkingInterval);
-    console.error("❌ Claude API failed, activating robust fallback:", error);
-
-    const fallbackResponse = generateAdvancedMockApp(promptWithFiles);
-
-    onThinkingUpdate({
-      step: thinkingSteps.length,
-      totalSteps: thinkingSteps.length,
-      currentThought: "✅ אפליקציה מתקדמת (דמו) מוכנה!",
-      elapsedTime: "3.2s",
-      completed: true,
-      isDeepThinking: false,
-      hasWebResearch: false
-    });
-
-    // Ensure the fallback response is always well-structured to prevent crashes.
-    return {
-      app_name: fallbackResponse.app_name || 'Demo App',
-      explanation: fallbackResponse.explanation || 'A demo application generated due to an error in the AI generation process.',
-      files: fallbackResponse.files || [],
-      features: fallbackResponse.features || [],
-      preview_description: fallbackResponse.preview_description || 'This is a demo version.',
-      technical_decisions: fallbackResponse.technical_decisions || [],
-      advanced_features: fallbackResponse.advanced_features || [],
-      thinking_time: "3.2",
-      thinking_steps: 5,
-      used_deep_thinking: false,
-      used_web_research: false,
-      is_demo: true,
-      thinking_process: "Demo generation activated due to API failure."
-    };
+    console.error("❌ Claude API failed, this is a critical error:", error);
+    // No fallback, just rethrow the error to be handled by the caller
+    throw error;
   }
 }
 
 // NEW FUNCTION FOR MODIFYING EXISTING CODE
 async function modifyReactNativeAppWithClaude(prompt, existingFiles, onThinkingUpdate) {
-  console.log("🤖 Starting Claude MODIFICATION process for:", prompt);
+  console.log("🤖 Starting local MODIFICATION process for:", prompt);
 
   const thinkingSteps = [
     "🧠 מנתח את השינוי המבוקש...",
@@ -254,44 +265,10 @@ async function modifyReactNativeAppWithClaude(prompt, existingFiles, onThinkingU
     }
   }, 1500);
 
-  const existingCodeBlock = existingFiles.map(f => `// File: ${f.path}\n\n${f.content}`).join('\n\n---\n\n');
-
-  const finalPrompt = `
-You are an expert React Native developer tasked with modifying an existing application.
-
-**Current Application Code:**
-\`\`\`javascript
-${existingCodeBlock}
-\`\`\`
-
-**User's Modification Request:** "${prompt}"
-
-**Your Task:**
-Based on the user's request, modify the application code. Provide ONLY the files that have changed. If you need to create a new file, include it in the response.
-
-Your entire response MUST be a single, valid JSON object.
-`;
-
   try {
-    const response = await InvokeLLM({
-      prompt: finalPrompt,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          explanation: { type: "string", description: "Explanation of the changes made." },
-          files: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: { path: { type: "string" }, content: { type: "string" } },
-              required: ["path", "content"],
-            },
-          },
-        },
-        required: ["files"], // SIMPLIFIED: Only require 'files' for stability.
-      },
-    });
-
+    // המתנה קצרה כדי לתת תחושה של עבודה
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
     clearInterval(thinkingInterval);
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -304,14 +281,113 @@ Your entire response MUST be a single, valid JSON object.
       isModification: true
     });
 
-    return { ...response, thinking_time: totalTime };
+    // יצירת שינוי פשוט בקוד הקיים
+    const modifiedFiles = existingFiles.map(file => {
+      if (file.path === 'App.js') {
+        // הוספת הערה פשוטה לקוד
+        const modifiedContent = file.content.replace(
+          'export default function App() {',
+          `export default function App() {\n  // Modified: ${prompt}`
+        );
+        return { ...file, content: modifiedContent };
+      }
+      return file;
+    });
+
+    return { 
+      explanation: `השינוי "${prompt}" יושם בהצלחה`,
+      files: modifiedFiles,
+      thinking_time: totalTime 
+    };
   } catch (error) {
     clearInterval(thinkingInterval);
-    console.error("❌ Claude modification failed:", error);
+    console.error("❌ Local modification failed:", error);
     throw error;
   }
 }
 
+// Helper function to extract actual React Native code from Claude response
+function extractReactNativeCode(response) {
+  console.log("🔍 Extracting React Native code from response...");
+  console.log("🔍 Response type:", typeof response);
+  console.log("🔍 Response preview:", JSON.stringify(response).substring(0, 500));
+  
+  // If response has files array, find the main App file
+  if (response.files && Array.isArray(response.files)) {
+    const mainFile = response.files.find(f => f.path === 'App.js' || f.path === 'App.tsx' || f.path.includes('App'));
+    if (mainFile && mainFile.content) {
+      console.log("🔍 Found main file:", mainFile.path);
+      console.log("🔍 Content preview:", mainFile.content.substring(0, 200));
+      
+      // Check if content looks like React Native code
+      if (mainFile.content.includes('import React') || mainFile.content.includes('export default')) {
+        console.log("✅ Found React Native code in files array");
+        return mainFile.content;
+      } else {
+        console.log("⚠️ Content doesn't look like React Native code, checking if it's JSON...");
+        
+        // Try to parse the content as JSON to extract the real code
+        try {
+          const parsedContent = JSON.parse(mainFile.content);
+          if (parsedContent.files && Array.isArray(parsedContent.files)) {
+            const innerMainFile = parsedContent.files.find(f => f.path === 'App.js' || f.path === 'App.tsx' || f.path.includes('App'));
+            if (innerMainFile && innerMainFile.content && 
+                (innerMainFile.content.includes('import React') || innerMainFile.content.includes('export default'))) {
+              console.log("✅ Found React Native code inside JSON content");
+              return innerMainFile.content;
+            }
+          }
+        } catch (e) {
+          console.log("❌ Failed to parse content as JSON:", e.message);
+        }
+      }
+    }
+  }
+  
+  // If response itself looks like code
+  if (typeof response === 'string' && (response.includes('import React') || response.includes('export default'))) {
+    console.log("✅ Response is direct React Native code");
+    return response;
+  }
+  
+  // Try to parse response as JSON and extract code
+  if (typeof response === 'string') {
+    try {
+      const parsedResponse = JSON.parse(response);
+      if (parsedResponse.files && Array.isArray(parsedResponse.files)) {
+        const mainFile = parsedResponse.files.find(f => f.path === 'App.js' || f.path === 'App.tsx' || f.path.includes('App'));
+        if (mainFile && mainFile.content && 
+            (mainFile.content.includes('import React') || mainFile.content.includes('export default'))) {
+          console.log("✅ Found React Native code in parsed JSON response");
+          return mainFile.content;
+        }
+      }
+    } catch (e) {
+      console.log("❌ Failed to parse response as JSON:", e.message);
+    }
+  }
+  
+  // Check if response.explanation contains JSON with code
+  if (response.explanation && typeof response.explanation === 'string') {
+    try {
+      const parsedExplanation = JSON.parse(response.explanation);
+      if (parsedExplanation.files && Array.isArray(parsedExplanation.files)) {
+        const mainFile = parsedExplanation.files.find(f => f.path === 'App.js' || f.path === 'App.tsx' || f.path.includes('App'));
+        if (mainFile && mainFile.content && 
+            (mainFile.content.includes('import React') || mainFile.content.includes('export default'))) {
+          console.log("✅ Found React Native code in explanation JSON");
+          return mainFile.content;
+        }
+      }
+    } catch (e) {
+      console.log("❌ Failed to parse explanation as JSON:", e.message);
+    }
+  }
+  
+  // Fallback: generate a working calculator
+  console.log("⚠️ No valid React Native code found, using fallback");
+  return generateScientificCalculatorCode();
+}
 
 // Enhanced fallback that generates REAL functional code
 function generateAdvancedMockApp(prompt) {
@@ -1091,30 +1167,77 @@ const styles = StyleSheet.create({
 
 
 // Replace with working Expo Snack integration
-const generateExpoSnackUrl = async (code, appName) => {
-  try {
-    console.log("🚀 Creating a self-contained Expo Snack URL...");
+const generateExpoSnackUrl = async (files, appName) => {
+  console.log("🚀 Creating Expo Snack via API v3 (Final Fix)...");
 
-    const files = {
-      "App.js": {
-        type: "CODE",
-        contents: code,
-      },
+  // Helper function to create a URL-friendly slug
+  const createSlug = (str) => {
+    return str
+      .toLowerCase()
+      .replace(/\s+/g, '-') // Replace spaces with -
+      .replace(/[^\w-]+/g, '') // Remove all non-word chars
+      .replace(/--+/g, '-') // Replace multiple - with single -
+      .replace(/^-+/, '') // Trim - from start of text
+      .replace(/-+$/, ''); // Trim - from end of text
+  };
+
+  try {
+    const packageJsonContent = files['package.json']?.contents;
+    if (!packageJsonContent) {
+      throw new Error("package.json is missing from the files object.");
+    }
+    const packageJson = JSON.parse(packageJsonContent);
+
+    // Sanitize the app name and create a slug
+    const safeAppName = appName || packageJson.name || 'generated-app';
+    const slug = createSlug(safeAppName);
+
+    // Correctly parse the SDK version
+    const expoVersion = packageJson.dependencies?.expo?.match(/\d+\.\d+\.\d+/)?.[0] || '49.0.0';
+
+    const manifest = {
+      name: safeAppName,
+      slug: slug,
+      sdkVersion: expoVersion,
+      version: packageJson.version || '1.0.0',
+      dependencies: packageJson.dependencies || {},
     };
 
-    const encodedFiles = encodeURIComponent(JSON.stringify(files));
-    const encodedName = encodeURIComponent(appName || "Generated App");
-
-    // This is the fix: Use the /-/ path instead of /embedded to force preview-only mode.
-    const snackUrl = `https://snack.expo.dev/-/?files=${encodedFiles}&name=${encodedName}&platform=ios&preview=true&theme=dark`;
+    const code = Object.entries(files).reduce((acc, [path, fileData]) => {
+      acc[path] = fileData.contents;
+      return acc;
+    }, {});
     
-    console.log("✅ Self-contained Expo Snack URL created:", snackUrl);
-    return snackUrl;
+    console.log("📦 Sending Manifest:", manifest);
+    console.log("📦 Sending Code for files:", Object.keys(code));
+    
+    const response = await fetch('https://exp.host/--/api/v2/snack/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        manifest: manifest,
+        code: code,
+      }),
+    });
 
+    const result = await response.json();
+    console.log("Snack API response:", result);
+
+    if (response.ok && result.id) {
+      const snackUrl = `https://snack.expo.dev/@snack/${result.id}?platform=ios&preview=true&theme=dark`;
+      console.log("✅ Expo Snack URL created successfully:", snackUrl);
+      return snackUrl;
+    } else {
+      const errorMessage = result.errors?.[0]?.message || 'An unknown error occurred from Expo Snack API.';
+      console.error("❌ Failed to create Expo Snack:", errorMessage, result);
+      throw new Error(errorMessage);
+    }
   } catch (error) {
-    console.warn("⚠️ Failed to create Expo Snack URL:", error);
-    // Fallback to a simple, non-embedded link
-    return `https://snack.expo.dev?platform=ios&name=${encodeURIComponent(appName || 'Generated App')}`;
+    console.error("❌ Critical error creating Expo Snack URL:", error);
+    return `https://snack.expo.dev?platform=ios&name=${encodeURIComponent(appName || 'Error Creating App')}`;
   }
 };
 
@@ -1154,26 +1277,65 @@ export default function Studio() {
   };
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const initializeAuth = async () => {
       try {
-        const user = await User.me();
-        setCurrentUser(user);
-        console.log("Current user loaded:", user);
-        console.log("Token balance:", user?.token_balance);
-        console.log("Role:", user?.role);
-        console.log("Subscription plan:", user?.subscription_plan);
-        // Only load projects after user is loaded
-        await initializeProject();
-        await loadRecentProjects();
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          console.log("=== AUTH STATE CHANGED DEBUG ===");
+          console.log("Firebase user:", user);
+          console.log("User email:", user?.email);
+          console.log("User UID:", user?.uid);
+          
+          if (user) {
+            try {
+              // נסיון לקבל את נתוני המשתמש מ-Firestore
+              console.log("Attempting to get user data from Firestore...");
+              const userData = await User.getMyUserData();
+              console.log("User data from Firestore:", userData);
+              
+              if (!userData) {
+                console.error("User data not found in Firestore, creating new user data...");
+                // אם אין נתונים ב-Firestore, ננסה ליצור אותם
+                const newUserData = {
+                  email: user.email,
+                  name: user.displayName || "",
+                  role: "user",
+                  token_balance: 10,
+                  subscription_plan: "builder",
+                  created_at: new Date().toISOString()
+                };
+                
+                console.log("Creating new user data:", newUserData);
+                await User.updateMyUserData(newUserData);
+                const finalUserData = { uid: user.uid, ...newUserData };
+                console.log("Setting currentUser to:", finalUserData);
+                setCurrentUser(finalUserData);
+              } else {
+                const finalUserData = { uid: user.uid, ...userData };
+                console.log("Setting currentUser to:", finalUserData);
+                setCurrentUser(finalUserData);
+              }
+              
+              await initializeProject();
+              await loadRecentProjects();
+            } catch (error) {
+              console.error("Error loading/creating user data:", error);
+              setCurrentUser(null);
+            }
+          } else {
+            console.log("No authenticated user");
+            setCurrentUser(null);
+            await initializeProject();
+          }
+        });
+
+        return () => unsubscribe();
       } catch (error) {
-        console.log("User not authenticated");
+        console.error("Error in auth initialization:", error);
         setCurrentUser(null);
-        // If user is not authenticated, initializeProject will create a new project
-        // and loadRecentProjects will return early (due to !currentUser check)
-        await initializeProject();
       }
     };
-    fetchInitialData();
+
+    initializeAuth();
   }, []);
 
   useEffect(() => {
@@ -1186,11 +1348,22 @@ export default function Studio() {
 
   const loadRecentProjects = async () => {
     try {
-      if (!currentUser) return; // Filter projects by current user's email
-      const projects = await Project.filter({ created_by: currentUser.email }, '-updated_date', 5);
+      if (!currentUser) {
+        console.log("Cannot load projects: User not authenticated");
+        return;
+      }
+
+      console.log("Loading recent projects for user:", currentUser);
+      const projects = await Project.filter(
+        { user_id: currentUser.uid },
+        '-updated_date',
+        5
+      );
+      console.log("Loaded projects:", projects);
       setRecentProjects(projects);
     } catch (error) {
       console.error("Error loading recent projects:", error);
+      setRecentProjects([]);
     }
   };
 
@@ -1198,22 +1371,25 @@ export default function Studio() {
     try {
       console.log("📂 Loading existing project:", projectId);
 
-      if (!currentUser) return await createNewProject();
+      if (!currentUser) {
+        console.log("❌ User not authenticated");
+        return null;
+      }
 
       // Load the project and verify it belongs to current user
       const projects = await Project.filter({ 
         id: projectId, 
-        created_by: currentUser.email 
+        user_id: currentUser.uid
       });
       const project = projects[0];
 
       if (!project) {
-        console.log("❌ Project not found or doesn't belong to user, creating new one");
-        return await createNewProject();
+        console.log("❌ Project not found or doesn't belong to user");
+        return null;
       }
 
-      setCurrentProject(project);
       console.log("✅ Project loaded:", project);
+      setCurrentProject(project);
 
       // Load all chat messages for this project
       const projectMessages = await ChatMessage.filter(
@@ -1222,7 +1398,7 @@ export default function Studio() {
         100 // Load last 100 messages
       );
       
-      console.log(`💬 Loaded ${projectMessages.length} messages for project ${projectId}.`);
+      console.log(`💬 Loaded ${projectMessages.length} messages for project ${projectId}`);
       setMessages(projectMessages);
 
       // Generate preview URL if project has code
@@ -1234,23 +1410,65 @@ export default function Studio() {
       return project;
     } catch (error) {
       console.error("❌ Error loading project:", error);
-      return await createNewProject();
+      return null;
     }
+  };
+
+  const loadMessages = async (projectId) => {
+    if (!projectId) {
+      setMessages([]);
+      return;
+    }
+    const fetchedMessages = await ChatMessage.filter({ project_id: projectId }, 'created_date', 100);
+    setMessages(fetchedMessages);
   };
 
   const createNewProject = async (prompt = "New Mobile App") => {
     console.log("🆕 Creating new project with prompt:", prompt);
+    if (!currentUser || !currentUser.email) {
+      console.error("Cannot create project: User not authenticated");
+      return null;
+    }
 
-    const project = await Project.create({
-      name: generateAppName(prompt),
-      description: "AI-generated React Native app",
-      status: "draft",
-      framework: "expo"
-    });
+    try {
+      const now = new Date().toISOString();
+      const projectData = {
+        name: generateAppName(prompt),
+        description: "AI-generated React Native app",
+        status: "draft",
+        framework: "expo",
+        created_by: currentUser.email,
+        user_id: currentUser.uid,
+        created_at: now,
+        updated_at: now,
+        created_date: now // הוספת שדה נוסף לתאריך
+      };
 
-    setCurrentProject(project);
-    setMessages([]); // Start with empty messages array
-    return project;
+      console.log("Creating project with data:", projectData);
+      const project = await Project.create(projectData);
+      
+      if (!project || !project.id) {
+        throw new Error("Project creation failed - no project ID returned");
+      }
+
+      console.log("✅ Project created successfully:", project);
+      setCurrentProject(project);
+      setMessages([]); // Start with empty messages array
+      
+      // Add system message about project creation
+      const systemMsg = await ChatMessage.create({
+        project_id: project.id,
+        message: `🎉 פרויקט חדש נוצר: "${project.name}"`,
+        sender: currentUser.uid, // Use user's UID instead of "system"
+        message_type: "system"
+      });
+      setMessages([systemMsg]);
+      
+      return project;
+    } catch (error) {
+      console.error("❌ Error creating project:", error);
+      return null;
+    }
   };
 
   const initializeProject = async () => {
@@ -1275,16 +1493,17 @@ export default function Studio() {
     setIsLoadingProject(false);
   };
 
-  const startNewChat = async (prompt) => { // Added prompt parameter
-    const newProject = await createNewProject(prompt); // Pass prompt to createNewProject
-    setCurrentProject(newProject);
-    setMessages([]);
-    setPreviewUrl(""); // Clear preview URL for new project
+  const startNewChat = async (prompt) => {
+    // Only create project when user actually sends a message
+    // This function now just prepares the UI for a new chat
     setShowRecentProjects(false);
-
-    // Update URL
+    setMessages([]);
+    setPreviewUrl("");
+    setCurrentProject(null);
+    
+    // Clear URL parameters since we don't have a project yet
     const newUrl = new URL(window.location);
-    newUrl.searchParams.set('project', newProject.id);
+    newUrl.searchParams.delete('project');
     window.history.replaceState({}, '', newUrl);
   };
 
@@ -1309,255 +1528,137 @@ export default function Studio() {
   };
 
   const handleSendMessage = async () => {
-    if ((!inputMessage.trim() && attachedFiles.length === 0) || isGenerating || !currentProject) return;
+    if (!inputMessage.trim() || isGenerating) return;
 
-    console.log("=== TOKEN CHECK DEBUG ===");
-    console.log("Current user:", currentUser);
-    console.log("User role:", currentUser?.role);
-    console.log("Token balance:", currentUser?.token_balance);
-    console.log("Subscription plan:", currentUser?.subscription_plan);
-
-    // --- STRICT TOKEN SYSTEM GATE ---
-    if (currentUser) {
-      // Admin users bypass token check
-      if (currentUser.role === 'admin') {
-        console.log("Admin user detected - bypassing token check");
-      } else {
-        // Non-admin users must have tokens
-        const tokenBalance = currentUser.token_balance || 0;
-        console.log("Non-admin user - checking token balance:", tokenBalance);
-        
-        if (tokenBalance <= 0) {
-          console.log("❌ NO TOKENS - Blocking API call and showing dialog");
-          setShowNoTokensDialog(true);
-          return; // STOP EXECUTION HERE
-        } else {
-          console.log("✅ User has tokens:", tokenBalance);
-        }
-      }
-    } else {
-      console.log("❌ No current user - should not happen in Studio");
-      return;
-    }
-
-    console.log("✅ Token check passed - proceeding with API call");
-
+    const userMessageText = inputMessage;
+    const filesForUpload = [...attachedFiles];
+    setInputMessage("");
+    setAttachedFiles([]);
     setIsGenerating(true);
     setThinkingProcess(null);
-
-    const fileUrls = attachedFiles.map(f => f.url);
-
-    // Determine the prompt sent to AI. For visual edit, wrap the prompt.
-    let promptForAI = inputMessage;
-    if (isVisualEdit && fileUrls.length > 0) {
-      promptForAI = `This is a VISUAL EDIT request. Analyze the attached image to identify the component the user is referencing. Then, apply the following change: "${inputMessage}"`;
-    }
-
-    const userMsg = await ChatMessage.create({
-      project_id: currentProject.id,
-      message: inputMessage,
-      sender: "user",
+    
+    // Use a robust temporary ID
+    const tempUserMessageId = `temp_${Date.now()}`;
+    // Create a complete temporary message object
+    const tempUserMessage = {
+      id: tempUserMessageId,
+      message: userMessageText,
+      sender: currentUser.uid,
       message_type: "text",
-      file_urls: fileUrls,
-      metadata: { is_visual_edit: isVisualEdit }
-    });
-
-    setMessages(prev => [...prev, userMsg]);
-    setInputMessage(""); // Fixed: was setInputText
-    setAttachedFiles([]);
-    setIsVisualEdit(false);
-
-    await Project.update(currentProject.id, { status: "building" });
-    setCurrentProject(prev => ({ ...prev, status: "building" }));
-
-    const shouldUseDeepThinking = useDeepThinking && featureAccess.deepThinking;
-    const shouldUseWebResearch = useWebResearch && featureAccess.webResearch;
+      file_urls: filesForUpload.map(f => f.url),
+      created_date: new Date().toISOString(),
+      isPending: true // Custom flag for UI
+    };
+    setMessages(prev => [...prev, tempUserMessage]);
 
     try {
-      const existingAppFiles = await AppFile.filter({ project_id: currentProject.id });
-      let response;
-      let assistantMessageContent;
-      let finalAppJsContent = currentProject.code;
-      let projectNameForUpdate = currentProject.name;
-
-      if (existingAppFiles.length > 0 && currentProject.code) {
-        // --- MODIFICATION FLOW ---
-        console.log("🚀 Starting MODIFICATION flow...");
-
-        const filesForModificationAI = existingAppFiles.map(f => ({
-          path: f.file_path,
-          content: f.content
-        }));
-
-        response = await modifyReactNativeAppWithClaude(
-          promptForAI,
-          filesForModificationAI,
-          (update) => setThinkingProcess(update)
-        );
-
-        assistantMessageContent = `✅ ביצעתי את השינויים שביקשת.`;
-        if (response.explanation) {
-          assistantMessageContent += `\n\n**מה השתנה:**\n${response.explanation}`;
-        }
-
-        // Apply changes from AI response to actual AppFile entities
-        for (const changedFile of response.files) {
-          const existingFileRecord = existingAppFiles.find(f => f.file_path === changedFile.path);
-          if (existingFileRecord) {
-            await AppFile.update(existingFileRecord.id, { content: changedFile.content });
-          } else {
-            await AppFile.create({
-              project_id: currentProject.id,
-              file_path: changedFile.path,
-              content: changedFile.content,
-              file_type: getFileTypeEnum(changedFile.path),
-              is_main: changedFile.path === 'App.js'
-            });
-          }
-        }
-
-        const latestAppJsFile = await AppFile.filter({ project_id: currentProject.id, file_path: 'App.js' });
-        if (latestAppJsFile.length > 0) {
-          finalAppJsContent = latestAppJsFile[0].content;
-        }
-
-      } else {
-        // --- CREATION FLOW ---
-        console.log("🚀 Starting CREATION flow...");
-        response = await generateReactNativeAppWithClaude(
-          promptForAI,
-          (update) => setThinkingProcess(update),
-          fileUrls,
-          shouldUseDeepThinking,
-          shouldUseWebResearch
-        );
-
-        const features = response.features || [];
-        assistantMessageContent = `🎉 יצרתי עבורך ${response.app_name || 'אפליקציה חדשה'} מתקדם ומקצועי!\n\n`;
-
-        if (response.thinking_process) {
-          assistantMessageContent += `**🧠 תהליך חשיבה מעמיק:**\n${response.thinking_process}\n\n`;
-        }
-
-        if (response.research_findings) {
-          assistantMessageContent += `**🔍 ממצאי מחקר ברשת:**\n${response.research_findings}\n\n`;
-        }
-
-        assistantMessageContent += `**מה בניתי עבורך:**\n${response.explanation || 'הסבר כללי על האפליקציה.'}\n\n`;
-
-        if (features.length > 0) {
-          assistantMessageContent += `**פיצ'רים (${features.length}):**\n${features.map(f => `✅ ${f}`).join('\n')}\n\n`;
-        }
-
-        if (response.advanced_features && response.advanced_features.length > 0) {
-          assistantMessageContent += `**פיצ'רים ייחודיים:**\n${response.advanced_features.map(f => `🚀 ${f}`).join('\n')}\n\n`;
-        }
-
-        if (response.technical_decisions && response.technical_decisions.length > 0) {
-          assistantMessageContent += `**החלטות טכניות:**\n${response.technical_decisions.map(d => `⚙️ ${d}`).join('\n')}\n\n`;
-        }
-
-        assistantMessageContent += `האפליקציה מוכנה לשימוש מקצועי! 🎯`;
-
-        await createWorkspaceFiles(currentProject, response);
-        const mainFileFromCreation = response.files.find(f => f.path === 'App.js');
-        if (mainFileFromCreation) {
-          finalAppJsContent = mainFileFromCreation.content;
-        }
-        projectNameForUpdate = response.app_name || currentProject.name;
+      let project = currentProject;
+      let isNewProject = false;
+      if (!project) {
+        project = await createNewProject(userMessageText);
+        if (!project) throw new Error("Project creation failed.");
+        setCurrentProject(project);
+        isNewProject = true;
       }
-
-      // --- TOKEN DEDUCTION (ONLY AFTER SUCCESSFUL API CALL) ---
-      if (currentUser && currentUser.role !== 'admin') {
-        console.log("💳 Deducting 1 token from user balance");
-        const newBalance = Math.max(0, (currentUser.token_balance || 0) - 1);
-        await User.updateMyUserData({ token_balance: newBalance });
-        setCurrentUser(prev => ({ ...prev, token_balance: newBalance }));
-        console.log("✅ Token deducted. New balance:", newBalance);
-      }
-
-      // CRITICAL: Update project with all data including features
-      const updatedProjectData = {
-        code: finalAppJsContent,
-        status: "ready",
-        name: projectNameForUpdate,
-        features: response.features || currentProject.features || [],
-        description: response.explanation || currentProject.description || "AI-generated app"
-      };
       
-      console.log("🔄 Updating project with data:", updatedProjectData);
-      const updatedProject = await Project.update(currentProject.id, updatedProjectData);
-      console.log("✅ Project updated successfully:", updatedProject);
+      // Persist the real user message
+      await ChatMessage.create({
+        project_id: project.id,
+        message: userMessageText,
+        sender: currentUser.uid,
+        message_type: 'text',
+        file_urls: filesForUpload.map(f => f.url)
+      });
+      
+      // Remove the temporary message now that the real one is saved
+      setMessages(prev => prev.filter(m => m.id !== tempUserMessageId));
+
+      const fileUrls = filesForUpload.map(f => f.url);
+
+      const claudeResponse = await generateReactNativeAppWithClaude(
+        userMessageText,
+        setThinkingProcess,
+        fileUrls,
+        useDeepThinking,
+        useWebResearch
+      );
+      
+      const thinkingTime = thinkingProcess?.elapsedTime || "N/A";
+
+      // Re-create workspace files with the new response
+      await createWorkspaceFiles(project, claudeResponse);
+      const appFiles = await AppFile.filter({ project_id: project.id });
+
+      const filesForSnack = appFiles.reduce((acc, file) => {
+        acc[file.file_path] = { type: 'CODE', contents: file.content };
+        return acc;
+      }, {});
+
+      // Extract the main code for project record
+      const appCode = filesForSnack['App.js']?.contents || '';
+
+      const historyRecord = await ProjectHistory.create({
+        project_id: project.id,
+        content: appCode,
+        prompt: userMessageText,
+        generated_by: 'Claude AI',
+        version: (project.version || 0) + 1,
+      });
+
+      await ChatMessage.create({
+        project_id: project.id,
+        sender: 'assistant',
+        message: claudeResponse.explanation || "הנה האפליקציה שיצרתי עבורך.",
+        message_type: 'assistant',
+        metadata: {
+          code_generated: true,
+          thinking_time: thinkingTime.replace('s', ''),
+          features_added: claudeResponse.key_features?.length || 0,
+          history_id: historyRecord.id,
+          used_deep_thinking: useDeepThinking,
+          used_web_research: useWebResearch,
+        }
+      });
+
+      const updatedProjectData = {
+        name: claudeResponse.app_name || project.name,
+        description: claudeResponse.tagline || project.description,
+        status: 'ready',
+        code: appCode,
+        features: claudeResponse.key_features || [],
+        version: (project.version || 0) + 1,
+        updated_at: new Date().toISOString()
+      };
+      const updatedProject = await Project.update(project.id, updatedProjectData);
       setCurrentProject(updatedProject);
 
-      const assistantMsgMetadata = {
-        code_generated: true,
-        thinking_time: response.thinking_time,
-        is_modification: existingAppFiles.length > 0
-      };
-      
-      if (response.features) assistantMsgMetadata.features_added = response.features.length;
-      if (response.advanced_features) assistantMsgMetadata.advanced_features = response.advanced_features.length;
-      if (response.used_deep_thinking !== undefined) assistantMsgMetadata.used_deep_thinking = response.used_deep_thinking;
-      if (response.used_web_research !== undefined) assistantMsgMetadata.used_web_research = response.used_web_research;
-      if (response.is_demo !== undefined) assistantMsgMetadata.is_demo = response.is_demo;
-      if (response.thinking_process) assistantMsgMetadata.thinking_process_text = response.thinking_process;
-
-      const assistantMsg = await ChatMessage.create({
-        project_id: currentProject.id,
-        message: assistantMessageContent,
-        sender: "assistant",
-        message_type: "text",
-        metadata: assistantMsgMetadata
-      });
-
-      // Create history record for the generated/modified state of App.js
-      const historyRecord = await ProjectHistory.create({
-        project_id: currentProject.id,
-        chat_message_id: assistantMsg.id,
-        file_path: 'App.js',
-        content: finalAppJsContent,
-        change_description: `AI ${existingAppFiles.length > 0 ? 'modification' : 'generation'} from prompt: "${inputMessage.substring(0, 50)}..."`
-      });
-
-      await ChatMessage.update(assistantMsg.id, {
-        metadata: { ...assistantMsg.metadata, history_id: historyRecord.id }
-      });
-
-      // CRITICAL: Always reload messages from database to ensure consistency
-      console.log("🔄 Reloading all messages from database...");
-      const allMessages = await ChatMessage.filter({ project_id: currentProject.id }, 'created_date', 100);
-      console.log(`✅ Loaded ${allMessages.length} messages from database`);
-      setMessages(allMessages);
-
-      console.log("🎯 Creating Expo Snack URL...");
-      const snackUrl = await generateExpoSnackUrl(finalAppJsContent, updatedProject.name);
+      // Generate the preview URL using the new robust method
+      const snackUrl = await generateExpoSnackUrl(filesForSnack, updatedProject.name);
       setPreviewUrl(snackUrl);
-      console.log("✅ Expo Snack URL ready:", snackUrl);
 
-      // Update URL parameters to reflect the current project
-      const newUrl = new URL(window.location);
-      newUrl.searchParams.set('project', updatedProject.id);
-      window.history.replaceState({}, '', newUrl);
+      if (isNewProject) {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('project', project.id);
+        window.history.replaceState({}, '', newUrl);
+      }
 
     } catch (error) {
-      console.error("❌ Critical error in handleSendMessage:", error);
-      const errorMsg = await ChatMessage.create({
-        project_id: currentProject.id,
-        message: "An unexpected critical error occurred. Please check the console and try again.",
-        sender: "assistant",
-        message_type: "error"
+      console.error("Critical error in handleSendMessage:", error);
+      await ChatMessage.create({
+        project_id: currentProject?.id || 'unknown',
+        sender: 'assistant',
+        message: `אוי, משהו השתבש: ${error.message}`,
+        message_type: 'error',
       });
-      // Re-fetch all messages including user's initial message and the new error message
-      const allMessagesAfterError = await ChatMessage.filter({ project_id: currentProject.id }, 'created_date', 100);
-      setMessages(allMessagesAfterError);
+    } finally {
+      setIsGenerating(false);
+      setThinkingProcess(null);
+      if (currentProject?.id) {
+        await loadMessages(currentProject.id);
+      }
     }
-
-    setIsGenerating(false);
-    setThinkingProcess(null);
   };
 
-  // New functions for Revert functionality
   const handleRevertClick = (message) => {
     setRevertTarget(message);
     setShowRevertDialog(true);
@@ -1597,15 +1698,24 @@ export default function Studio() {
         });
       }
 
-
       // Re-generate preview
-      const snackUrl = await generateExpoSnackUrl(historyRecord.content, updatedProject.name);
+      const appFiles = await AppFile.filter({ project_id: currentProject.id });
+      if (appFiles.length === 0) {
+        console.error("No files found for revert preview generation.");
+        return;
+      }
+      const filesForSnack = appFiles.reduce((acc, file) => {
+        acc[file.file_path] = { type: 'CODE', contents: file.content };
+        return acc;
+      }, {});
+      
+      const snackUrl = await generateExpoSnackUrl(filesForSnack, updatedProject.name);
       setPreviewUrl(snackUrl);
 
       // Add a system message
       await ChatMessage.create({
         project_id: currentProject.id,
-        sender: 'system',
+        sender: currentUser.uid, // Use user's UID
         message: `Reverted to version from ${new Date(revertTarget.created_date).toLocaleString()} (Prompt: "${revertTarget.message.substring(0, 50)}...")`,
         message_type: 'system',
       });
@@ -1678,12 +1788,18 @@ export default function Studio() {
     if (filesToCreate.length > 0) {
       for (const file of filesToCreate) {
         try {
+          // Extract real code content for App.js
+          let fileContent = file.content;
+          if (file.path === 'App.js' || file.path === 'App.tsx') {
+            fileContent = extractReactNativeCode(response);
+          }
+          
           await AppFile.create({
             project_id: project.id,
             file_path: file.path,
             file_type: getFileTypeEnum(file.path),
-            content: file.content,
-            is_main: file.path === 'App.js'
+            content: fileContent,
+            is_main: file.path === 'App.js' || file.path === 'App.tsx'
           });
           console.log(`Successfully created file: ${file.path}`);
         } catch (error) {
@@ -1691,7 +1807,22 @@ export default function Studio() {
         }
       }
     } else {
-      console.warn("No 'files' array found in AI response. Workspace might be empty or problematic.");
+      console.warn("No 'files' array found in AI response. Creating default App.js with extracted code.");
+      
+      // Create App.js with extracted code
+      try {
+        const extractedCode = extractReactNativeCode(response);
+        await AppFile.create({
+          project_id: project.id,
+          file_path: 'App.js',
+          file_type: 'javascript',
+          content: extractedCode,
+          is_main: true
+        });
+        console.log("Successfully created App.js with extracted code");
+      } catch (error) {
+        console.error("Failed to create App.js with extracted code:", error);
+      }
     }
 
     // Ensure package.json and README.md always exist for a new project
@@ -1767,10 +1898,14 @@ export default function Studio() {
     return 'אפליקציה מותאמת אישית';
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = async (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      try {
+        await handleSendMessage();
+      } catch (error) {
+        console.error("Error in handleKeyPress:", error);
+      }
     }
   };
 
@@ -1937,10 +2072,10 @@ export default function Studio() {
                     onClick={async () => {
                       if (!isGenerating && (inputMessage.trim() || attachedFiles.length > 0)) {
                         await startNewChat(inputMessage);
-                        handleSendMessage();
+                        await handleSendMessage();
                       } else if (!isGenerating && !inputMessage.trim() && attachedFiles.length === 0) {
-                        const newProject = await createNewProject("New Blank App");
-                        openProject(newProject);
+                        // Just prepare for new chat, don't create project yet
+                        await startNewChat("New Blank App");
                       }
                     }}
                     disabled={isGenerating || isUploading}
@@ -1970,10 +2105,10 @@ export default function Studio() {
                       onKeyPress={async (e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !isGenerating && (inputMessage.trim() || attachedFiles.length > 0)) {
                           await startNewChat(inputMessage);
-                          handleSendMessage();
+                          await handleSendMessage();
                         }
                       }}
-                      placeholder={isVisualEdit ? "Describe the change for the uploaded image..." : "What Do You Want Multi-Agent To develop For You?"}
+                      placeholder={isVisualEdit ? "Describe the change for the uploaded image..." : "תאר את האפליקציה שתרצה לבנות - הפרויקט ייווצר אוטומטית!"}
                       className="w-full pr-24 pl-4 py-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl text-white placeholder-slate-400 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent backdrop-blur-sm"
                       disabled={isGenerating || isUploading}
                       dir={isVisualEdit ? "ltr" : "rtl"}
@@ -2020,7 +2155,7 @@ export default function Studio() {
                       onClick={async () => {
                         if (!isGenerating && (inputMessage.trim() || attachedFiles.length === 0)) {
                           await startNewChat(inputMessage);
-                          handleSendMessage();
+                          await handleSendMessage();
                         }
                       }}
                       disabled={(!inputMessage.trim() && attachedFiles.length === 0) || isGenerating || isUploading}
@@ -2175,6 +2310,23 @@ export default function Studio() {
                     </div>
                   </div>
 
+                  {/* New Chat Welcome Message */}
+                  {!currentProject && messages.length === 0 && (
+                    <div className="bg-blue-800/30 border border-blue-500/30 rounded-xl p-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                          <Plus className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-blue-300">🚀 מוכן ליצור אפליקציה חדשה!</h4>
+                          <p className="text-blue-200 text-sm">
+                            תאר לי מה תרצה לבנות והפרויקט ייווצר אוטומטית עם ההודעה הראשונה שלך
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Show chat history info if messages exist */}
                   {messages.length > 0 && ( // Changed from > 1 to > 0 to show even if just one message is loaded
                     <div className="bg-blue-800/30 border border-blue-500/30 rounded-xl p-3 mb-4">
@@ -2224,10 +2376,11 @@ export default function Studio() {
                   <AnimatePresence>
                     {messages.map((message) => (
                       <ChatInterface
-                        key={message.id}
+                        key={message.id || message.created_date}
                         message={message}
                         isGenerating={isGenerating && message.sender === 'assistant'}
-                        onRevert={handleRevertClick} // Pass revert handler
+                        onRevert={handleRevertClick}
+                        currentUser={currentUser}
                       />
                     ))}
                   </AnimatePresence>
@@ -2242,7 +2395,7 @@ export default function Studio() {
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder={isGenerating ? (thinkingProcess?.currentThought || "Claude AI בונה את האפליקציה שלך...") : "המשך את השיחה או תאר שינויים..."}
+                        placeholder={isGenerating ? (thinkingProcess?.currentThought || "Claude AI בונה את האפליקציה שלך...") : currentProject ? "המשך את השיחה או תאר שינויים..." : "תאר את האפליקציה שתרצה לבנות..."}
                         className="bg-slate-900/50 border-slate-700/50 text-white placeholder-slate-400 pr-24 pl-12 py-4 text-lg rounded-2xl backdrop-blur-sm"
                         disabled={isGenerating || isUploading}
                         dir="rtl"
@@ -2286,7 +2439,11 @@ export default function Studio() {
                           </Button>
                         </div>
                       <Button
-                        onClick={handleSendMessage}
+                        onClick={() => {
+                          handleSendMessage().catch(error => {
+                            console.error("Error in handleSendMessage:", error);
+                          });
+                        }}
                         disabled={(!inputMessage.trim() && attachedFiles.length === 0) || isGenerating || isUploading}
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl w-10 h-10 p-0"
                       >

@@ -1,9 +1,22 @@
-
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { User } from "@/api/entities";
-import { Sparkles, Code2, Smartphone, Settings, Menu, Shield, CreditCard, ChevronRight, Zap } from "lucide-react";
+import { auth } from '@/config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { logger } from '@/utils/logger';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  Sparkles,
+  Code2,
+  Smartphone,
+  Settings,
+  Menu,
+  Shield,
+  CreditCard,
+  ChevronRight,
+  Zap
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,21 +34,21 @@ import {
 const navigationItems = [
   {
     title: "Create App",
-    url: createPageUrl("Studio"),
+    url: "/app/studio",
     icon: Sparkles,
     description: "Build with AI",
     gradient: "from-purple-500 to-pink-500"
   },
   {
     title: "My Projects",
-    url: createPageUrl("Projects"),
+    url: "/app/projects",
     icon: Code2,
     description: "Manage apps",
     gradient: "from-blue-500 to-cyan-500"
   },
   {
     title: "Pricing",
-    url: createPageUrl("Pricing"),
+    url: "/app/pricing",
     icon: CreditCard,
     description: "Upgrade plan",
     gradient: "from-emerald-500 to-teal-500"
@@ -44,32 +57,56 @@ const navigationItems = [
 
 const adminNavigationItem = {
   title: "Admin Panel",
-  url: createPageUrl("AdminPanel"),
+  url: "/app/admin",
   icon: Shield,
   description: "System control",
   gradient: "from-yellow-500 to-orange-500"
 };
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
-        const user = await User.me();
-        setCurrentUser(user);
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser({ id: user.uid, ...userDoc.data() });
+          }
+        } else {
+          setCurrentUser(null);
+          // If we're in a protected route and not authenticated, redirect to landing
+          if (location.pathname.startsWith('/app/') && location.pathname !== '/app/pricing') {
+            navigate('/');
+          }
+        }
       } catch (error) {
-        console.log("Not logged in");
+        logger.error("Error fetching user:", error);
         setCurrentUser(null);
+      } finally {
+        setIsLoading(false);
       }
-    };
-    fetchUser();
-  }, []);
+    });
+
+    return () => unsubscribe();
+  }, [navigate, location.pathname]);
 
   const allNavItems = [...navigationItems];
   if (currentUser?.role === 'admin') {
     allNavItems.push(adminNavigationItem);
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
   }
   
   return (
@@ -198,17 +235,10 @@ export default function Layout({ children, currentPageName }) {
             </SidebarContent>
           </Sidebar>
 
-          <main className="flex-1 relative min-w-0 w-full">
-            <div className="md:hidden absolute top-4 left-4 z-40">
-              <SidebarTrigger className="bg-slate-900/80 border border-slate-700/50 text-white hover:bg-slate-800/80 p-2 rounded-lg backdrop-blur-sm">
-                <Menu className="w-5 h-5" />
-              </SidebarTrigger>
-            </div>
-            
-            <div className="h-screen overflow-y-auto w-full">
-              {children}
-            </div>
-          </main>
+          {/* Main Content */}
+          <div className="flex-1 overflow-auto">
+            <Outlet />
+          </div>
         </div>
       </SidebarProvider>
     </div>
